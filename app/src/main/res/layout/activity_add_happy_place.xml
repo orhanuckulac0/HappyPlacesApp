@@ -145,6 +145,9 @@
                 android:textColor="@color/colorAccent"
                 android:textSize="@dimen/add_screen_text_add_image_textSize"
                 android:textStyle="bold"
+                android:focusable="false"
+                android:focusableInTouchMode="false"
+
                 app:flow_horizontalBias="0.45"
                 app:layout_constraintBottom_toTopOf="@+id/btnSave"
                 app:layout_constraintEnd_toEndOf="parent"
