@@ -5,8 +5,8 @@ import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
@@ -18,10 +18,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import orhan.uckulac.happyplaces.databinding.ActivityAddHappyPlaceBinding
-import permissions.dispatcher.*
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -40,6 +38,20 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             if (result.resultCode == RESULT_OK && result.data != null){
                 val imageBackground: AppCompatImageView? = binding?.ivPlaceImage
                 imageBackground?.setImageURI(result.data?.data)
+            }
+        }
+
+    private val openCameraLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
+            result ->
+            if (result.resultCode == RESULT_OK && result.data != null){
+                val photoTaken : Bitmap = result.data?.extras!!.get("data") as Bitmap
+                binding?.ivPlaceImage?.setImageBitmap(photoTaken)
+            } else {
+                showRationaleDialog("Happy Places App",
+                    "Happy Places App needs camera permission for you to use your camera. " +
+                            "Would you like to go to your app settings to allow permission?"
+                )
             }
         }
 
@@ -100,7 +112,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     _, which ->
                     when(which){
                         0 -> requestStoragePermission()
-                        1 -> Toast.makeText(this@AddHappyPlaceActivity, "Camera selection coming soon", Toast.LENGTH_LONG).show()
+                        1 -> requestCameraPermission()
                     }
                 }
                 alertdialog.show()
@@ -147,5 +159,21 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             }
 
         builder.create().show()
+    }
+
+    private fun requestCameraPermission(){
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            openCameraLauncher.launch(intent)
+        }else{
+            // If the permission is denied then show a text
+            Toast.makeText(
+                this@AddHappyPlaceActivity,
+                "Oops, you just denied the permission.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 }
