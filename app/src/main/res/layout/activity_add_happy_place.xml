@@ -126,7 +126,7 @@
                 android:layout_marginTop="@dimen/add_screen_place_image_marginTop"
                 android:background="@drawable/shape_image_view_border"
                 android:padding="@dimen/add_screen_place_image_padding"
-                android:scaleType="centerCrop"
+                android:scaleType="fitXY"
                 android:src="@drawable/add_screen_image_placeholder"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.0"

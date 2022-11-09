@@ -3,25 +3,38 @@ package orhan.uckulac.happyplaces
 import android.Manifest
 import android.app.AlertDialog
 import android.app.DatePickerDialog
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.widget.AppCompatImageView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import orhan.uckulac.happyplaces.databinding.ActivityAddHappyPlaceBinding
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
+
 class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
+
+    companion object {
+        private const val IMAGE_DIRECTORY = "HappyPlacesImages"
+    }
 
     private var binding: ActivityAddHappyPlaceBinding? = null
     private var cal = Calendar.getInstance()
@@ -36,8 +49,29 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             // check the result, if It's okay and if the result data is not empty,
             // then get the location of the data, URI, and assign it as background image
             if (result.resultCode == RESULT_OK && result.data != null){
-                val imageBackground: AppCompatImageView? = binding?.ivPlaceImage
-                imageBackground?.setImageURI(result.data?.data)
+                val contentURI = result.data?.data
+                val imageBitmap: Bitmap?
+                try{
+//                  getBitmap() is deprecated on sdk > 28
+                    if(Build.VERSION.SDK_INT < 28) {
+                        imageBitmap = MediaStore.Images.Media.getBitmap(contentResolver, contentURI)
+                        saveImageToInternalStorage(imageBitmap)
+                        Log.e("Saved Image SDK:", "SDK < 28")
+
+                    }else{   // more up to date approach -- if sdk > 28
+                        val source: ImageDecoder.Source = ImageDecoder.createSource(contentResolver, contentURI!!)
+                        imageBitmap = ImageDecoder.decodeBitmap(source)
+                        saveImageToInternalStorage(imageBitmap)
+                        Log.e("Saved Image SDK:", "SDK > 28")
+                    }
+                    Log.e("Saved Image Path:", "$imageBitmap")
+
+                    binding?.ivPlaceImage?.setImageURI(contentURI)
+                }
+                catch (e: IOException){
+                    e.printStackTrace()
+                    Toast.makeText(this, "Failed to load image from gallery", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
@@ -45,8 +79,15 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
             result ->
             if (result.resultCode == RESULT_OK && result.data != null){
-                val photoTaken : Bitmap = result.data?.extras!!.get("data") as Bitmap
-                binding?.ivPlaceImage?.setImageBitmap(photoTaken)
+                try {
+                    val photoTaken : Bitmap = result.data?.extras!!.get("data") as Bitmap
+                    saveImageToInternalStorage(photoTaken)
+                    binding?.ivPlaceImage?.setImageBitmap(photoTaken)
+                }
+                catch (e: IOException){
+                    e.printStackTrace()
+                    Toast.makeText(this, "Failed to load image taken with camera", Toast.LENGTH_SHORT).show() }
+
             } else {
                 showRationaleDialog("Happy Places App",
                     "Happy Places App needs camera permission for you to use your camera. " +
@@ -79,10 +120,10 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         setSupportActionBar(binding?.toolbarAddPlace)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding?.toolbarAddPlace?.setNavigationOnClickListener {
-            onBackPressed()
+            onBackPressedDispatcher.onBackPressed()
         }
 
-        dateSetListener = DatePickerDialog.OnDateSetListener { datePicker, year, month, dayOfMonth ->
+        dateSetListener = DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
             cal.set(Calendar.YEAR, year)
             cal.set(Calendar.MONTH, month)
             cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
@@ -141,6 +182,17 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    private fun requestCameraPermission(){
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            openCameraLauncher.launch(intent)
+        }else{
+            requestPermission.launch(Manifest.permission.CAMERA)
+        }
+    }
+
     private fun showRationaleDialog(
         title: String,
         message: String,
@@ -153,27 +205,37 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             }
             .setPositiveButton("Yes"){
                 // redirect user to app settings to allow permission for gallery
-                _, _-> startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    _, _-> startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.fromParts("package", packageName, null)
-                })
+            })
             }
 
         builder.create().show()
     }
 
-    private fun requestCameraPermission(){
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            openCameraLauncher.launch(intent)
-        }else{
-            // If the permission is denied then show a text
-            Toast.makeText(
-                this@AddHappyPlaceActivity,
-                "Oops, you just denied the permission.",
-                Toast.LENGTH_LONG
-            ).show()
+    private fun saveImageToInternalStorage(bitmap: Bitmap): Uri {
+        val wrapper = ContextWrapper(applicationContext)  // extends context
+        var file = wrapper.getDir(IMAGE_DIRECTORY, Context.MODE_PRIVATE)  // make file only accessible only to this app
+        file = File(file, "${UUID.randomUUID()}.jpg")
+
+        try {
+            val stream: OutputStream = FileOutputStream(file)  // Creates a file output stream to write to the file with the specified name.
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+            stream.flush()
+            stream.close()
+
+        }catch (e: IOException){
+            e.printStackTrace()
+        }
+
+        return Uri.parse(file.absolutePath)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        if (binding != null){
+            binding = null
         }
     }
 }
