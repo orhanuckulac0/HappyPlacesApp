@@ -22,6 +22,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.launch
 import orhan.uckulac.happyplaces.databinding.ActivityAddHappyPlaceBinding
 import java.io.File
@@ -235,7 +237,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun addPlaceToDb(happyPlacesDAO: HappyPlacesDAO){
         lifecycleScope.launch {
-            happyPlacesDAO.insert(
+            happyPlacesDAO.insertPlace(
                 HappyPlaceEntity(
                     0,
                     title = binding?.etTitle?.text.toString(),

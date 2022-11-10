@@ -6,14 +6,18 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface HappyPlacesDAO {
     @Insert
-    suspend fun insert(happyPlaceEntity: HappyPlaceEntity)
+    suspend fun insertPlace(happyPlaceEntity: HappyPlaceEntity)
 
     @Update
-    suspend fun updateUsers(happyPlaceEntity: HappyPlaceEntity)
+    suspend fun updatePlace(happyPlaceEntity: HappyPlaceEntity)
 
     @Delete
-    suspend fun delete(happyPlaceEntity: HappyPlaceEntity)
+    suspend fun deletePlace(happyPlaceEntity: HappyPlaceEntity)
 
     @Query("SELECT * FROM 'happy-places-table'")
-    fun fetchAllPlace(): Flow<List<HappyPlaceEntity>>
+    fun fetchAllPlaces(): Flow<List<HappyPlaceEntity>>
+
+    @Query("SELECT * FROM 'happy-places-table' where id=:id")
+    fun fetchPlaceById(id:Int):Flow<HappyPlaceEntity>
+
 }
