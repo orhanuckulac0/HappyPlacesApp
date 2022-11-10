@@ -44,7 +44,6 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
     private var saveImageToInternalStorage: Uri? = null
     private var longitude = 0.0
     private var latitude = 0.0
-    private val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
 
     // create a result launcher to get the image URI from the phone gallery
     // first define what kind of a launcher will it be? 'intent'
@@ -62,15 +61,12 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     if(Build.VERSION.SDK_INT < 28) {
                         imageBitmap = MediaStore.Images.Media.getBitmap(contentResolver, contentURI)
                         saveImageToInternalStorage = saveImageToInternalStorage(imageBitmap)
-                        Log.e("Saved Image SDK:", "SDK < 28")
 
                     }else{   // more up to date approach -- if sdk > 28
                         val source: ImageDecoder.Source = ImageDecoder.createSource(contentResolver, contentURI!!)
                         imageBitmap = ImageDecoder.decodeBitmap(source)
                         saveImageToInternalStorage = saveImageToInternalStorage(imageBitmap)
-                        Log.e("Saved Image SDK:", "SDK > 28")
                     }
-                    Log.e("Saved Image Path:", "$imageBitmap")
 
                     binding?.ivPlaceImage?.setImageURI(contentURI)
                 }
@@ -136,6 +132,11 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
         binding?.etDate?.setOnClickListener(this@AddHappyPlaceActivity)
         binding?.tvAddImage?.setOnClickListener(this@AddHappyPlaceActivity)
+
+        val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
+        binding?.btnSave?.setOnClickListener {
+            addPlaceToDb(dao)
+        }
     }
 
     override fun onClick(v: View?) {
@@ -161,9 +162,6 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     }
                 }
                 alertdialog.show()
-            }
-            binding?.btnSave?.id ->{
-                addPlaceToDb(dao)
             }
         }
     }
