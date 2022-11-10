@@ -21,6 +21,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import orhan.uckulac.happyplaces.databinding.ActivityAddHappyPlaceBinding
 import java.io.File
 import java.io.FileOutputStream
@@ -39,6 +41,10 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
     private var binding: ActivityAddHappyPlaceBinding? = null
     private var cal = Calendar.getInstance()
     private lateinit var dateSetListener: DatePickerDialog.OnDateSetListener
+    private var saveImageToInternalStorage: Uri? = null
+    private var longitude = 0.0
+    private var latitude = 0.0
+    private val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
 
     // create a result launcher to get the image URI from the phone gallery
     // first define what kind of a launcher will it be? 'intent'
@@ -55,13 +61,13 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 //                  getBitmap() is deprecated on sdk > 28
                     if(Build.VERSION.SDK_INT < 28) {
                         imageBitmap = MediaStore.Images.Media.getBitmap(contentResolver, contentURI)
-                        saveImageToInternalStorage(imageBitmap)
+                        saveImageToInternalStorage = saveImageToInternalStorage(imageBitmap)
                         Log.e("Saved Image SDK:", "SDK < 28")
 
                     }else{   // more up to date approach -- if sdk > 28
                         val source: ImageDecoder.Source = ImageDecoder.createSource(contentResolver, contentURI!!)
                         imageBitmap = ImageDecoder.decodeBitmap(source)
-                        saveImageToInternalStorage(imageBitmap)
+                        saveImageToInternalStorage = saveImageToInternalStorage(imageBitmap)
                         Log.e("Saved Image SDK:", "SDK > 28")
                     }
                     Log.e("Saved Image Path:", "$imageBitmap")
@@ -81,7 +87,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             if (result.resultCode == RESULT_OK && result.data != null){
                 try {
                     val photoTaken : Bitmap = result.data?.extras!!.get("data") as Bitmap
-                    saveImageToInternalStorage(photoTaken)
+                    saveImageToInternalStorage = saveImageToInternalStorage(photoTaken)
                     binding?.ivPlaceImage?.setImageBitmap(photoTaken)
                 }
                 catch (e: IOException){
@@ -89,8 +95,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     Toast.makeText(this, "Failed to load image taken with camera", Toast.LENGTH_SHORT).show() }
 
             } else {
-                showRationaleDialog("Happy Places App",
-                    "Happy Places App needs camera permission for you to use your camera. " +
+                showRationaleDialog("Happy Places App needs camera permission for you to use your camera. " +
                             "Would you like to go to your app settings to allow permission?"
                 )
             }
@@ -105,8 +110,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                 openGalleryLauncher.launch(pickIntent)
 
             } else {
-                showRationaleDialog("Happy Places App",
-                    "Happy Places App needs media permission for you to use your gallery. " +
+                showRationaleDialog("Happy Places App needs media permission for you to use your gallery. " +
                         "Would you like to go to your app settings to allow permission?"
                 )
             }
@@ -158,6 +162,9 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                 }
                 alertdialog.show()
             }
+            binding?.btnSave?.id ->{
+                addPlaceToDb(dao)
+            }
         }
     }
 
@@ -193,12 +200,9 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    private fun showRationaleDialog(
-        title: String,
-        message: String,
-    ){
+    private fun showRationaleDialog(message: String){
         val builder: AlertDialog.Builder = AlertDialog.Builder(this)
-        builder.setTitle(title)
+        builder.setTitle("Happy Places App")
             .setMessage(message)
             .setNegativeButton("Cancel"){
                     dialog, _-> dialog.dismiss()
@@ -229,6 +233,23 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         }
 
         return Uri.parse(file.absolutePath)
+    }
+
+    private fun addPlaceToDb(happyPlacesDAO: HappyPlacesDAO){
+        lifecycleScope.launch {
+            happyPlacesDAO.insert(
+                HappyPlaceEntity(
+                    0,
+                    title = binding?.etTitle?.text.toString(),
+                    imagePath = saveImageToInternalStorage.toString(),
+                    description = binding?.etDescription?.text.toString(),
+                    date = binding?.etDate?.text.toString(),
+                    location = binding?.etLocation?.text.toString(),
+                    longitude = longitude,
+                    latitude = latitude
+                )
+            )
+        }
     }
 
     override fun onDestroy() {
