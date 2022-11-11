@@ -1,4 +1,4 @@
-package orhan.uckulac.happyplaces
+package orhan.uckulac.happyplaces.database
 
 import android.content.Context
 import androidx.room.Database
@@ -14,7 +14,7 @@ abstract class HappyPlacesDatabase: RoomDatabase() {
         @Volatile
         private var INSTANCE: HappyPlacesDatabase? = null
 
-        fun getInstance(context: Context): HappyPlacesDatabase{
+        fun getInstance(context: Context): HappyPlacesDatabase {
             synchronized(this){
                 var instance = INSTANCE
 

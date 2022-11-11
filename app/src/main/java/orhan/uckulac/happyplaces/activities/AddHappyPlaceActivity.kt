@@ -14,7 +14,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -22,9 +21,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.launch
+import orhan.uckulac.happyplaces.database.HappyPlaceEntity
+import orhan.uckulac.happyplaces.database.HappyPlacesApp
+import orhan.uckulac.happyplaces.database.HappyPlacesDAO
 import orhan.uckulac.happyplaces.databinding.ActivityAddHappyPlaceBinding
 import java.io.File
 import java.io.FileOutputStream

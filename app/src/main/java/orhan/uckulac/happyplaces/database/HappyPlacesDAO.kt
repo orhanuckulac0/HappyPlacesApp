@@ -1,4 +1,4 @@
-package orhan.uckulac.happyplaces
+package orhan.uckulac.happyplaces.database
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
