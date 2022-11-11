@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import orhan.uckulac.happyplaces.activities.MainActivity
 import orhan.uckulac.happyplaces.database.HappyPlaceEntity
 import orhan.uckulac.happyplaces.database.HappyPlacesApp
 import orhan.uckulac.happyplaces.database.HappyPlacesDAO
@@ -136,8 +137,12 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         binding?.tvAddImage?.setOnClickListener(this@AddHappyPlaceActivity)
 
         val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
+
         binding?.btnSave?.setOnClickListener {
             addPlaceToDb(dao)
+            val intent = Intent(this@AddHappyPlaceActivity, MainActivity::class.java)
+            startActivity(intent)
+            finish()
         }
     }
 
