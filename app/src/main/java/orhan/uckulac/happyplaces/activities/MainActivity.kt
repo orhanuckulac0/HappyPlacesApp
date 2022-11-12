@@ -3,16 +3,22 @@ package orhan.uckulac.happyplaces.activities
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import orhan.uckulac.happyplaces.adapter.HappyPlacesAdapter
 import orhan.uckulac.happyplaces.database.HappyPlaceEntity
 import orhan.uckulac.happyplaces.database.HappyPlacesApp
+import orhan.uckulac.happyplaces.database.HappyPlacesDAO
 import orhan.uckulac.happyplaces.databinding.ActivityMainBinding
+import orhan.uckulac.happyplaces.models.HappyPlaceModel
+import orhan.uckulac.happyplaces.utils.SwipeToDeleteCallback
 import orhan.uckulac.happyplaces.utils.SwipeToEditCallback
 
 class MainActivity : AppCompatActivity() {
@@ -22,7 +28,6 @@ class MainActivity : AppCompatActivity() {
         private const val ADD_PLACE_ACTIVITY_REQUEST_CODE = 1
         internal const val EXTRA_PLACE_DETAILS = "extra_place_details"
     }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +40,25 @@ class MainActivity : AppCompatActivity() {
         }
 
         val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
+        getAllPlacesFromDB(dao)
 
+        if (intent.hasExtra("deleted_place")){
+            val receivedPlaceToDelete: HappyPlaceModel =intent?.getSerializableExtra("deleted_place") as HappyPlaceModel
+
+            lifecycleScope.launch {
+                dao.fetchPlaceById(receivedPlaceToDelete.id).collect { singlePlace ->
+                    dao.deletePlace(singlePlace)
+
+                    dao.fetchAllPlaces().collect { allPlaces ->
+                        val listOfPlaces = ArrayList(allPlaces)
+                        setupListOfPlacesIntoRecyclerView(listOfPlaces)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getAllPlacesFromDB(dao: HappyPlacesDAO){
         lifecycleScope.launch {
             dao.fetchAllPlaces().collect(){
                 val listOfPlaces = ArrayList(it)
@@ -70,8 +93,19 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+
         val editItemTouchHelper = ItemTouchHelper(editSwipeHandler)
         editItemTouchHelper.attachToRecyclerView(binding?.rvHappyPlaces)
+
+        val deleteSwipeHandler = object: SwipeToDeleteCallback(this@MainActivity){
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val adapter = binding?.rvHappyPlaces?.adapter as HappyPlacesAdapter
+                adapter.removeAt(this@MainActivity, viewHolder.adapterPosition, ADD_PLACE_ACTIVITY_REQUEST_CODE)
+            }
+        }
+
+        val deleteItemTouchHelper = ItemTouchHelper(deleteSwipeHandler)
+        deleteItemTouchHelper.attachToRecyclerView(binding?.rvHappyPlaces)
     }
 
     override fun onResume() {

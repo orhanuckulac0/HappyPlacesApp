@@ -18,6 +18,5 @@ interface HappyPlacesDAO {
     fun fetchAllPlaces(): Flow<List<HappyPlaceEntity>>
 
     @Query("SELECT * FROM 'happy-places-table' where id=:id")
-    fun fetchPlaceById(id:Int):Flow<HappyPlaceEntity>
-
+    fun fetchPlaceById(id:Int): Flow<HappyPlaceEntity>
 }

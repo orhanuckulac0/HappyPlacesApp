@@ -154,14 +154,15 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
             saveImageToInternalStorage = Uri.parse(mHappyPlaceDetails!!.image)
             binding?.ivPlaceImage?.setImageURI(saveImageToInternalStorage)
+
             binding?.btnSave?.text = "UPDATE"
 
         }else{
             supportActionBar?.title = "Add Happy Place"
         }
 
-
         val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
+
         // check if item is being edited or added for the first time
         if (binding?.btnSave?.text == "SAVE"){
             binding?.btnSave?.setOnClickListener {

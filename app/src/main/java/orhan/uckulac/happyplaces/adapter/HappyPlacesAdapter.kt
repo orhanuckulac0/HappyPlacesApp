@@ -61,7 +61,7 @@ class HappyPlacesAdapter(private val context: Context,
 
     fun notifyEditItem(activity: Activity, position: Int, requestCode: Int){
         val model = list[position]
-        val currentObject = HappyPlaceModel(
+        val currentPlace = HappyPlaceModel(
             id=model.id,
             title=model.title,
             image = model.imagePath,
@@ -73,8 +73,26 @@ class HappyPlacesAdapter(private val context: Context,
         )
 
         val intent = Intent(context, AddHappyPlaceActivity::class.java)
-        intent.putExtra(MainActivity.EXTRA_PLACE_DETAILS, currentObject)
+        intent.putExtra(MainActivity.EXTRA_PLACE_DETAILS, currentPlace)
         activity.startActivityForResult(intent, requestCode)
         notifyItemChanged(position)
+    }
+
+    fun removeAt(activity: Activity, position: Int, requestCode: Int){
+        val model = list[position]
+        val currentPlace = HappyPlaceModel(
+            id=model.id,
+            title=model.title,
+            image = model.imagePath,
+            description = model.description,
+            date = model.date,
+            location = model.location,
+            latitude =  model.latitude,
+            longitude = model.longitude
+        )
+
+        val intent = Intent(context, MainActivity::class.java)
+        intent.putExtra("deleted_place", currentPlace)
+        activity.startActivityForResult(intent, requestCode)
     }
 }
