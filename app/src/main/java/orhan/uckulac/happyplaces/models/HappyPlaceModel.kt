@@ -1,4 +1,4 @@
-package orhan.uckulac.happyplaces.database
+package orhan.uckulac.happyplaces.models
 
 data class HappyPlaceModel(
     val id: Int,

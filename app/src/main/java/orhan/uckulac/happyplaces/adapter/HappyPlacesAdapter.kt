@@ -1,16 +1,24 @@
 package orhan.uckulac.happyplaces.adapter
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import orhan.uckulac.happyplaces.AddHappyPlaceActivity
 import orhan.uckulac.happyplaces.activities.HappyPlaceDetailActivity
+import orhan.uckulac.happyplaces.activities.MainActivity
 import orhan.uckulac.happyplaces.database.HappyPlaceEntity
-import orhan.uckulac.happyplaces.database.HappyPlaceModel
+import orhan.uckulac.happyplaces.database.HappyPlacesApp
+import orhan.uckulac.happyplaces.database.HappyPlacesDAO
+import orhan.uckulac.happyplaces.database.HappyPlacesDatabase
+import orhan.uckulac.happyplaces.models.HappyPlaceModel
 import orhan.uckulac.happyplaces.databinding.ItemHappyPlaceBinding
 
-class HappyPlacesAdapter(private val list: ArrayList<HappyPlaceEntity>)
+class HappyPlacesAdapter(private val context: Context,
+                         private val list: ArrayList<HappyPlaceEntity>)
     : RecyclerView.Adapter<HappyPlacesAdapter.ViewHolder>() {
 
     class ViewHolder(binding: ItemHappyPlaceBinding) : RecyclerView.ViewHolder(binding.root){
@@ -25,7 +33,6 @@ class HappyPlacesAdapter(private val list: ArrayList<HappyPlaceEntity>)
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val model = list[position]
-
         holder.tvTitle.text = model.title
         holder.tvDescription.text = model.description
         holder.sivImage.setImageURI(Uri.parse(model.imagePath))
@@ -55,7 +62,22 @@ class HappyPlacesAdapter(private val list: ArrayList<HappyPlaceEntity>)
         return list.size
     }
 
-    companion object {
-        var EXTRA_PLACE_DETAILS = "extra_place_details"
+    fun notifyEditItem(activity: Activity, position: Int, requestCode: Int){
+        val model = list[position]
+        val currentObject = HappyPlaceModel(
+            id=model.id,
+            title=model.title,
+            image = model.imagePath,
+            description = model.description,
+            date = model.date,
+            location = model.location,
+            latitude =  model.latitude,
+            longitude = model.longitude
+        )
+
+        val intent = Intent(context, AddHappyPlaceActivity::class.java)
+        intent.putExtra(MainActivity.EXTRA_PLACE_DETAILS, currentObject)
+        activity.startActivityForResult(intent, requestCode)
+        notifyItemChanged(position)
     }
 }

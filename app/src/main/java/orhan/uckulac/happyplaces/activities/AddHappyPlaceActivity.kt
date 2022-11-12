@@ -27,6 +27,7 @@ import orhan.uckulac.happyplaces.database.HappyPlaceEntity
 import orhan.uckulac.happyplaces.database.HappyPlacesApp
 import orhan.uckulac.happyplaces.database.HappyPlacesDAO
 import orhan.uckulac.happyplaces.databinding.ActivityAddHappyPlaceBinding
+import orhan.uckulac.happyplaces.models.HappyPlaceModel
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -47,6 +48,8 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
     private var saveImageToInternalStorage: Uri? = null
     private var longitude = 0.0
     private var latitude = 0.0
+
+    private var mHappyPlaceDetails: HappyPlaceModel? = null
 
     // create a result launcher to get the image URI from the phone gallery
     // first define what kind of a launcher will it be? 'intent'
@@ -137,13 +140,35 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         binding?.tvAddImage?.setOnClickListener(this@AddHappyPlaceActivity)
 
         val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
-
         binding?.btnSave?.setOnClickListener {
             addPlaceToDb(dao)
             val intent = Intent(this@AddHappyPlaceActivity, MainActivity::class.java)
             startActivity(intent)
             finish()
         }
+
+        if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)){
+            mHappyPlaceDetails = intent.getSerializableExtra(MainActivity.EXTRA_PLACE_DETAILS) as HappyPlaceModel
+        }
+
+        if (mHappyPlaceDetails != null){
+            supportActionBar?.title = "Edit Happy Place"
+            binding?.etTitle?.setText(mHappyPlaceDetails!!.title)
+            binding?.etDescription?.setText(mHappyPlaceDetails!!.description)
+            binding?.etDate?.setText(mHappyPlaceDetails!!.date)
+            binding?.etLocation?.setText(mHappyPlaceDetails!!.location)
+
+            latitude = mHappyPlaceDetails!!.latitude
+            longitude = mHappyPlaceDetails!!.longitude
+
+            saveImageToInternalStorage = Uri.parse(mHappyPlaceDetails!!.image)
+            binding?.ivPlaceImage?.setImageURI(saveImageToInternalStorage)
+            binding?.btnSave?.text = "UPDATE"
+
+        }else{
+            supportActionBar?.title = "Add Happy Place"
+        }
+
     }
 
     override fun onClick(v: View?) {

@@ -3,7 +3,7 @@ package orhan.uckulac.happyplaces.activities
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import orhan.uckulac.happyplaces.database.HappyPlaceModel
+import orhan.uckulac.happyplaces.models.HappyPlaceModel
 import orhan.uckulac.happyplaces.databinding.ActivityHappyPlaceDetailBinding
 
 class HappyPlaceDetailActivity : AppCompatActivity() {
@@ -20,7 +20,7 @@ class HappyPlaceDetailActivity : AppCompatActivity() {
             onBackPressedDispatcher.onBackPressed()
         }
 
-        val receivedPlaceDetail:HappyPlaceModel=intent?.getSerializableExtra("extra_place_details") as HappyPlaceModel
+        val receivedPlaceDetail: HappyPlaceModel =intent?.getSerializableExtra("extra_place_details") as HappyPlaceModel
         showCurrentPlaceDetails(receivedPlaceDetail)
     }
 
