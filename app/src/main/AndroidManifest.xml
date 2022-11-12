@@ -27,7 +27,7 @@
                 android:value="" />
         </activity>
         <activity
-            android:name=".AddHappyPlaceActivity"
+            android:name=".activities.AddHappyPlaceActivity"
             android:exported="false"
             android:label="ADD HAPPY PLACE"
             android:screenOrientation="portrait"

@@ -9,13 +9,11 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.launch
-import orhan.uckulac.happyplaces.AddHappyPlaceActivity
 import orhan.uckulac.happyplaces.adapter.HappyPlacesAdapter
 import orhan.uckulac.happyplaces.database.HappyPlaceEntity
 import orhan.uckulac.happyplaces.database.HappyPlacesApp
-import orhan.uckulac.happyplaces.database.HappyPlacesDAO
 import orhan.uckulac.happyplaces.databinding.ActivityMainBinding
-import orhan.uckulac.happyplaces.utils.SwipeToDeleteCallback
+import orhan.uckulac.happyplaces.utils.SwipeToEditCallback
 
 class MainActivity : AppCompatActivity() {
     private var binding: ActivityMainBinding? = null
@@ -41,12 +39,12 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             dao.fetchAllPlaces().collect(){
                 val listOfPlaces = ArrayList(it)
-                setupListOfPlacesIntoRecyclerView(listOfPlaces, dao)
+                setupListOfPlacesIntoRecyclerView(listOfPlaces)
             }
         }
     }
 
-    private fun setupListOfPlacesIntoRecyclerView(happyPlacesList: ArrayList<HappyPlaceEntity>, happyPlacesDAO: HappyPlacesDAO){
+    private fun setupListOfPlacesIntoRecyclerView(happyPlacesList: ArrayList<HappyPlaceEntity>){
 
         if (happyPlacesList.isNotEmpty()){
             lifecycleScope.launch{
@@ -62,7 +60,7 @@ class MainActivity : AppCompatActivity() {
             binding?.tvNoRecordsAvailable?.visibility = View.VISIBLE
         }
 
-        val editSwipeHandler = object: SwipeToDeleteCallback(this@MainActivity){
+        val editSwipeHandler = object: SwipeToEditCallback(this@MainActivity){
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val adapter = binding?.rvHappyPlaces?.adapter as HappyPlacesAdapter
                 adapter.notifyEditItem(
@@ -74,6 +72,18 @@ class MainActivity : AppCompatActivity() {
         }
         val editItemTouchHelper = ItemTouchHelper(editSwipeHandler)
         editItemTouchHelper.attachToRecyclerView(binding?.rvHappyPlaces)
-
     }
+
+    override fun onResume() {
+        super.onResume()
+        val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
+
+        lifecycleScope.launch {
+            dao.fetchAllPlaces().collect() {
+                val listOfPlaces = ArrayList(it)
+                setupListOfPlacesIntoRecyclerView(listOfPlaces)
+            }
+        }
+    }
+
 }

@@ -7,13 +7,10 @@ import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import orhan.uckulac.happyplaces.AddHappyPlaceActivity
+import orhan.uckulac.happyplaces.activities.AddHappyPlaceActivity
 import orhan.uckulac.happyplaces.activities.HappyPlaceDetailActivity
 import orhan.uckulac.happyplaces.activities.MainActivity
 import orhan.uckulac.happyplaces.database.HappyPlaceEntity
-import orhan.uckulac.happyplaces.database.HappyPlacesApp
-import orhan.uckulac.happyplaces.database.HappyPlacesDAO
-import orhan.uckulac.happyplaces.database.HappyPlacesDatabase
 import orhan.uckulac.happyplaces.models.HappyPlaceModel
 import orhan.uckulac.happyplaces.databinding.ItemHappyPlaceBinding
 

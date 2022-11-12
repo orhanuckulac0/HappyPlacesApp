@@ -1,4 +1,4 @@
-package orhan.uckulac.happyplaces
+package orhan.uckulac.happyplaces.activities
 
 import android.Manifest
 import android.app.AlertDialog
@@ -22,7 +22,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import orhan.uckulac.happyplaces.activities.MainActivity
 import orhan.uckulac.happyplaces.database.HappyPlaceEntity
 import orhan.uckulac.happyplaces.database.HappyPlacesApp
 import orhan.uckulac.happyplaces.database.HappyPlacesDAO
@@ -139,14 +138,6 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         binding?.etDate?.setOnClickListener(this@AddHappyPlaceActivity)
         binding?.tvAddImage?.setOnClickListener(this@AddHappyPlaceActivity)
 
-        val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
-        binding?.btnSave?.setOnClickListener {
-            addPlaceToDb(dao)
-            val intent = Intent(this@AddHappyPlaceActivity, MainActivity::class.java)
-            startActivity(intent)
-            finish()
-        }
-
         if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)){
             mHappyPlaceDetails = intent.getSerializableExtra(MainActivity.EXTRA_PLACE_DETAILS) as HappyPlaceModel
         }
@@ -169,6 +160,22 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             supportActionBar?.title = "Add Happy Place"
         }
 
+
+        val dao = (application as HappyPlacesApp).db.happyPlacesDAO()
+        // check if item is being edited or added for the first time
+        if (binding?.btnSave?.text == "SAVE"){
+            binding?.btnSave?.setOnClickListener {
+                addPlaceToDB(dao)
+                val intent = Intent(this@AddHappyPlaceActivity, MainActivity::class.java)
+                startActivity(intent)
+                finish()
+            }
+        }else{
+            binding?.btnSave?.setOnClickListener {
+                // pass the current place ID to update it
+                updatePlaceInDB(mHappyPlaceDetails!!.id, dao)
+            }
+        }
     }
 
     override fun onClick(v: View?) {
@@ -265,7 +272,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         return Uri.parse(file.absolutePath)
     }
 
-    private fun addPlaceToDb(happyPlacesDAO: HappyPlacesDAO){
+    private fun addPlaceToDB(happyPlacesDAO: HappyPlacesDAO){
         lifecycleScope.launch {
             happyPlacesDAO.insertPlace(
                 HappyPlaceEntity(
@@ -279,6 +286,41 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     latitude = latitude
                 )
             )
+        }
+    }
+
+    private fun updatePlaceInDB(id: Int, happyPlacesDAO: HappyPlacesDAO){
+        lifecycleScope.launch {
+            val updatedTitle = binding?.etTitle?.text.toString()
+            val updatedDescription = binding?.etDescription?.text.toString()
+            val updatedImagePath = saveImageToInternalStorage.toString()
+            val updatedDate = binding?.etDate?.text.toString()
+            val updatedLocation = binding?.etLocation?.text.toString()
+
+            if (updatedTitle.isNotEmpty()
+                && updatedDescription.isNotEmpty()
+                && updatedImagePath.isNotEmpty()
+                && updatedDate.isNotEmpty()
+                && updatedLocation.isNotEmpty()
+            ){
+                happyPlacesDAO.updatePlace(HappyPlaceEntity(
+                    id,
+                    updatedTitle,
+                    updatedImagePath,
+                    updatedDescription,
+                    updatedDate,
+                    updatedLocation,
+                    longitude,
+                    latitude
+                    )
+                )
+                val intent = Intent(this@AddHappyPlaceActivity, MainActivity::class.java)
+                startActivity(intent)
+                finish()
+
+            }else{
+                Toast.makeText(applicationContext, "Title, Description, Image, Date or Location can not be empty.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
