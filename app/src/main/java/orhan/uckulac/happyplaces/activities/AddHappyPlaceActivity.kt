@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -21,7 +22,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import kotlinx.coroutines.launch
+import orhan.uckulac.happyplaces.R
 import orhan.uckulac.happyplaces.database.HappyPlaceEntity
 import orhan.uckulac.happyplaces.database.HappyPlacesApp
 import orhan.uckulac.happyplaces.database.HappyPlacesDAO
@@ -39,6 +45,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
     companion object {
         private const val IMAGE_DIRECTORY = "HappyPlacesImages"
+        private const val AUTOCOMPLETE_REQUEST_CODE = 1
     }
 
     private var binding: ActivityAddHappyPlaceBinding? = null
@@ -117,6 +124,26 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             }
         }
 
+    private val addressAutoCompleteLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                result ->
+            if (result.resultCode == RESULT_OK && result.data != null){
+                try{
+                    val data = result.data
+                    val place: Place = Autocomplete.getPlaceFromIntent(data!!)
+                    binding?.etLocation?.setText(place.address)
+                    latitude = place.latLng!!.latitude
+                    longitude = place.latLng!!.longitude
+
+                }catch(e:Exception){
+                    e.printStackTrace()
+                }
+            }else if (result.resultCode == RESULT_CANCELED) {
+                // The user canceled the operation.
+                Log.e("AutoComplete Cancelled", "User canceled autocomplete");
+            }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAddHappyPlaceBinding.inflate(layoutInflater)
@@ -137,6 +164,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
         binding?.etDate?.setOnClickListener(this@AddHappyPlaceActivity)
         binding?.tvAddImage?.setOnClickListener(this@AddHappyPlaceActivity)
+        binding?.etLocation?.setOnClickListener(this@AddHappyPlaceActivity)  // for google maps api
 
         if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)){
             mHappyPlaceDetails = intent.getSerializableExtra(MainActivity.EXTRA_PLACE_DETAILS) as HappyPlaceModel
@@ -177,6 +205,12 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                 updatePlaceInDB(mHappyPlaceDetails!!.id, dao)
             }
         }
+
+        if (!Places.isInitialized()){
+            Places.initialize(this@AddHappyPlaceActivity, resources.getString(R.string.google_maps_api_key))
+
+        }
+
     }
 
     override fun onClick(v: View?) {
@@ -202,6 +236,15 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     }
                 }
                 alertdialog.show()
+            }
+            binding?.etLocation?.id ->{
+                // google maps auto complete api setup
+                // startActivityForResult is deprecated, this is more up to date approach.
+                val fields = listOf(
+                    Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS
+                )
+                val intent = Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields).build(this)
+                addressAutoCompleteLauncher.launch(intent)
             }
         }
     }

@@ -11,4 +11,6 @@
     <string name="text_add_image">ADD IMAGE</string>
 
     <string name="btn_text_save">SAVE</string>
+
+    <string name="google_maps_api_key">AIzaSyDXcI5xjqMgwwC0N1TCWnE1ScJTqeMWYmA</string>
 </resources>

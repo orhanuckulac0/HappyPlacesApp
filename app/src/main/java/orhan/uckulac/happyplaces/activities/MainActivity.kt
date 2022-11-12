@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.libraries.places.api.Places
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import orhan.uckulac.happyplaces.adapter.HappyPlacesAdapter
@@ -96,6 +97,7 @@ class MainActivity : AppCompatActivity() {
 
         val editItemTouchHelper = ItemTouchHelper(editSwipeHandler)
         editItemTouchHelper.attachToRecyclerView(binding?.rvHappyPlaces)
+
 
         val deleteSwipeHandler = object: SwipeToDeleteCallback(this@MainActivity){
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
