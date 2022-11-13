@@ -30,6 +30,7 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import orhan.uckulac.happyplaces.R
 import orhan.uckulac.happyplaces.database.HappyPlaceEntity
@@ -37,6 +38,7 @@ import orhan.uckulac.happyplaces.database.HappyPlacesApp
 import orhan.uckulac.happyplaces.database.HappyPlacesDAO
 import orhan.uckulac.happyplaces.databinding.ActivityAddHappyPlaceBinding
 import orhan.uckulac.happyplaces.models.HappyPlaceModel
+import orhan.uckulac.happyplaces.utils.GetAddressFromLatLng
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -49,7 +51,6 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
     companion object {
         private const val IMAGE_DIRECTORY = "HappyPlacesImages"
-        private const val AUTOCOMPLETE_REQUEST_CODE = 1
     }
 
     private var binding: ActivityAddHappyPlaceBinding? = null
@@ -64,6 +65,23 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             val mLastLocation: Location = locationResult.lastLocation!!
             latitude = mLastLocation.latitude
             longitude = mLastLocation.longitude
+
+            // Create GetAddressFromLatLng object
+            val addressTask = GetAddressFromLatLng(this@AddHappyPlaceActivity, latitude, longitude)
+
+            addressTask.setCustomAddressListener(object: GetAddressFromLatLng.AddressListener{
+                override fun onAddressFound(address: String?) {
+                    binding?.etLocation?.setText(address)
+                }
+
+                override fun onError() {
+                    Log.e("Get Address Error:","OnError: Something went wrong")
+                }
+            })
+            // run on IO
+            lifecycleScope.launch(Dispatchers.IO){
+                addressTask.launchBackgroundProcessForRequest()
+            }
         }
     }
 
@@ -161,18 +179,23 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
     private val requestLocationPermission: ActivityResultLauncher<Array<String>> =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){
                 permissions ->
-            permissions.entries.forEach{
+            // Instead of forEach, use firstNotNullOfOrNull
+            // otherwise Toast will pop up twice since Fine location also gives permission to coarse location
+            permissions.entries.firstNotNullOfOrNull{
                 val permissionName = it.key
                 val isGranted = it.value
 
                 if (isGranted){
-                    if (permissionName == Manifest.permission.ACCESS_FINE_LOCATION || permissionName == Manifest.permission.ACCESS_COARSE_LOCATION){
-                        Toast.makeText(this, "Permission granted location.", Toast.LENGTH_LONG).show()
+                    if (permissionName == Manifest.permission.ACCESS_COARSE_LOCATION ||
+                        permissionName == Manifest.permission.ACCESS_FINE_LOCATION){
                         requestNewLocationData()
                     }
+                    Toast.makeText(this, "Permission granted location.", Toast.LENGTH_LONG).show()
+
                 }else{
                     showRationaleDialogForLocation(
-                        "This app requires location permission to autofill your location. Would you like to go to your app settings?"
+                        "This app requires location permission to autofill your location." +
+                                " Would you like to go to your app settings?"
                     )
                 }
             }
