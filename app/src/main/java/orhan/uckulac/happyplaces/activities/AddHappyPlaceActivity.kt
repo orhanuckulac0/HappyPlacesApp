@@ -1,6 +1,7 @@
 package orhan.uckulac.happyplaces.activities
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.content.Context
@@ -9,9 +10,11 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
+import android.location.Location
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
@@ -22,6 +25,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.location.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
@@ -55,7 +59,17 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
     private var longitude = 0.0
     private var latitude = 0.0
 
+    private val mLocationCallback = object: LocationCallback(){
+        override fun onLocationResult(locationResult: LocationResult) {
+            val mLastLocation: Location = locationResult.lastLocation!!
+            latitude = mLastLocation.latitude
+            longitude = mLastLocation.longitude
+        }
+    }
+
     private var mHappyPlaceDetails: HappyPlaceModel? = null
+
+    private lateinit var mFusedLocationClient: FusedLocationProviderClient
 
     // create a result launcher to get the image URI from the phone gallery
     // first define what kind of a launcher will it be? 'intent'
@@ -103,7 +117,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     Toast.makeText(this, "Failed to load image taken with camera", Toast.LENGTH_SHORT).show() }
 
             } else {
-                showRationaleDialog("Happy Places App needs camera permission for you to use your camera. " +
+                showRationaleDialogForGallery("Happy Places App needs camera permission for you to use your camera. " +
                             "Would you like to go to your app settings to allow permission?"
                 )
             }
@@ -118,7 +132,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                 openGalleryLauncher.launch(pickIntent)
 
             } else {
-                showRationaleDialog("Happy Places App needs media permission for you to use your gallery. " +
+                showRationaleDialogForGallery("Happy Places App needs media permission for you to use your gallery. " +
                         "Would you like to go to your app settings to allow permission?"
                 )
             }
@@ -144,6 +158,26 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             }
     }
 
+    private val requestLocationPermission: ActivityResultLauncher<Array<String>> =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){
+                permissions ->
+            permissions.entries.forEach{
+                val permissionName = it.key
+                val isGranted = it.value
+
+                if (isGranted){
+                    if (permissionName == Manifest.permission.ACCESS_FINE_LOCATION || permissionName == Manifest.permission.ACCESS_COARSE_LOCATION){
+                        Toast.makeText(this, "Permission granted location.", Toast.LENGTH_LONG).show()
+                        requestNewLocationData()
+                    }
+                }else{
+                    showRationaleDialogForLocation(
+                        "This app requires location permission to autofill your location. Would you like to go to your app settings?"
+                    )
+                }
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAddHappyPlaceBinding.inflate(layoutInflater)
@@ -165,6 +199,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         binding?.etDate?.setOnClickListener(this@AddHappyPlaceActivity)
         binding?.tvAddImage?.setOnClickListener(this@AddHappyPlaceActivity)
         binding?.etLocation?.setOnClickListener(this@AddHappyPlaceActivity)  // for google maps api
+        binding?.btnSelectCurrentLocation?.setOnClickListener(this@AddHappyPlaceActivity)  // for google maps to find current location of the user
 
         if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)){
             mHappyPlaceDetails = intent.getSerializableExtra(MainActivity.EXTRA_PLACE_DETAILS) as HappyPlaceModel
@@ -208,9 +243,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
         if (!Places.isInitialized()){
             Places.initialize(this@AddHappyPlaceActivity, resources.getString(R.string.google_maps_api_key))
-
         }
-
     }
 
     override fun onClick(v: View?) {
@@ -245,6 +278,12 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                 )
                 val intent = Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields).build(this)
                 addressAutoCompleteLauncher.launch(intent)
+            }
+
+            binding?.btnSelectCurrentLocation?.id -> {
+                requestLocationPermission.launch(arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                )
             }
         }
     }
@@ -281,21 +320,22 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    private fun showRationaleDialog(message: String){
-        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
-        builder.setTitle("Happy Places App")
-            .setMessage(message)
-            .setNegativeButton("Cancel"){
-                    dialog, _-> dialog.dismiss()
-            }
-            .setPositiveButton("Yes"){
-                // redirect user to app settings to allow permission for gallery
-                    _, _-> startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.fromParts("package", packageName, null)
-            })
-            }
+    @SuppressLint("MissingPermission")
+    private fun requestNewLocationData() {
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this@AddHappyPlaceActivity)
 
-        builder.create().show()
+        val mLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setWaitForAccurateLocation(false)
+//            .setMinUpdateIntervalMillis(100)
+//            .setMaxUpdateDelayMillis(100)
+            .setMaxUpdates(1)
+            .build()
+
+        mFusedLocationClient.requestLocationUpdates(
+            mLocationRequest,
+            mLocationCallback,
+            Looper.myLooper()
+        )
     }
 
     private fun saveImageToInternalStorage(bitmap: Bitmap): Uri {
@@ -366,6 +406,38 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                 Toast.makeText(applicationContext, "Title, Description, Image, Date or Location can not be empty.", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun showRationaleDialogForGallery(message: String){
+        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+        builder.setTitle("Happy Places App")
+            .setMessage(message)
+            .setNegativeButton("Cancel"){
+                    dialog, _-> dialog.dismiss()
+            }
+            .setPositiveButton("Yes"){
+                // redirect user to app settings to allow permission for gallery
+                    _, _-> startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+            })
+            }
+        builder.create().show()
+    }
+
+    private fun showRationaleDialogForLocation(message: String){
+        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+        builder.setTitle("Happy Places App")
+            .setMessage(message)
+            .setNegativeButton("Cancel"){
+                    dialog, _-> dialog.dismiss()
+            }
+            .setPositiveButton("Yes"){
+                // redirect user to app settings to allow permission for location
+                    _, _->
+                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                startActivity(intent)
+            }
+        builder.create().show()
     }
 
     override fun onDestroy() {
