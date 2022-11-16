@@ -11,6 +11,7 @@ A Happy Places app which user can store their favourite places locally by their 
 - Update current location details
 - Swipe to edit or delete
 - Add location with google maps API autocomplete
+- Get current user location and use it as a happy place location
 - See the location on google maps
 
 ## Screenshots
