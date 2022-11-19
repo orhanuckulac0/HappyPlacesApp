@@ -13,6 +13,7 @@ A Happy Places app which user can store their favourite places locally by their 
 - Add location with google maps API autocomplete
 - Get current user location and use it as a happy place location
 - See the location on google maps
+- Added data are stored with Room Database
 
 ## Screenshots
 
