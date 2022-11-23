@@ -1,5 +1,5 @@
 
-# A Happy Places App
+# HappyPlacesApp
 
 A Happy Places app which user can store their favourite places locally by their name, description, location, date and images.
 
