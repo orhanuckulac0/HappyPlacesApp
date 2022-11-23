@@ -1,5 +1,5 @@
 
-# Project Title
+# A Happy Places App
 
 A Happy Places app which user can store their favourite places locally by their name, description, location, date and images.
 
